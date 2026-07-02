@@ -1,0 +1,16 @@
+{
+  "name": "quba-garden-resort-showcase",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm --filter @workspace/rental-site dev",
+    "build": "pnpm --filter @workspace/rental-site build",
+    "serve": "pnpm --filter @workspace/rental-site serve",
+    "typecheck": "pnpm --filter @workspace/rental-site typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.8.4",
+    "typescript": "~5.9.3"
+  }
+}

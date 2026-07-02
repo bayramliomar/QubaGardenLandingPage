@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "NkVZGK1UFEU0Id-FNvyrg"
+uri = "file://artifacts/rental-site/public/hero.png"
+type = "image"
+title = "Mountain house exterior"
+
+[[generated]]
+id = "1c6o1QzSqKhuasdIRgJZz"
+uri = "file://artifacts/rental-site/public/floor1-1.jpg"
+type = "image"
+title = "Floor 1 Living Area"
+
+[[generated]]
+id = "cdoNXPkM3o-Tuc3eutj6l"
+uri = "file://artifacts/rental-site/public/floor1-2.jpg"
+type = "image"
+title = "Floor 1 Bedroom"
+
+[[generated]]
+id = "y7zdKXYHVxU3ZRyXzxqqk"
+uri = "file://artifacts/rental-site/public/floor2-1.png"
+type = "image"
+title = "Floor 2 Living Room"
+
+[[generated]]
+id = "bn1-F_9hOgkPrhOJhc6vp"
+uri = "file://artifacts/rental-site/public/floor2-2.png"
+type = "image"
+title = "Floor 2 View"

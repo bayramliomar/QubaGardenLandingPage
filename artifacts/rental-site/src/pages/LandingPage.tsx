@@ -399,7 +399,7 @@ export default function LandingPage() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${scrolled ? 'bg-white/96 backdrop-blur-md shadow-sm border-b border-border/60' : 'bg-transparent'}`}>
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => scrollTo('hero')}
-            className={`font-serif text-xl font-semibold transition-colors duration-300 ${scrolled ? 'text-primary' : 'text-white'}`}>
+            className={`font-serif text-[clamp(1rem,3.5vw,1.25rem)] font-semibold whitespace-nowrap transition-colors duration-300 ${scrolled ? 'text-primary' : 'text-white'}`}>
             {t.siteName}
           </button>
           <div className="hidden md:flex items-center space-x-5 text-sm font-medium">
@@ -409,7 +409,7 @@ export default function LandingPage() {
               ['gallery', t.nav.gallery],
               ['amenities', t.nav.amenities],
               ['location', t.nav.location],
-              ['contact', t.nav.contact],
+              ['booking', t.nav.contact],
             ] as [string, string][]).map(([id, label]) => (
               <button key={id} onClick={() => scrollTo(id)}
                 className={`transition-colors hover:text-secondary ${scrolled ? 'text-foreground' : 'text-white/90 hover:text-white'}`}>
@@ -423,11 +423,11 @@ export default function LandingPage() {
               {(['az','en','ru'] as Language[]).map(l => (
                 <button key={l} onClick={() => setLang(l)} data-testid={`lang-${l}`}
                   className={`px-1.5 py-0.5 text-xs uppercase font-medium rounded transition-colors ${lang === l ? (scrolled ? 'text-primary font-bold' : 'text-white font-bold') : (scrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/60 hover:text-white')}`}>
-                  {l}
+                  {l.toUpperCase()}
                 </button>
               ))}
             </div>
-            <Button size="sm" onClick={() => scrollTo('contact')} data-testid="button-nav-book"
+            <Button size="sm" onClick={() => scrollTo('booking')} data-testid="button-nav-book"
               className={!scrolled ? 'bg-white/20 hover:bg-white/30 text-white border-white/30 border backdrop-blur-sm' : ''}>
               {t.nav.bookNow}
             </Button>
@@ -453,7 +453,7 @@ export default function LandingPage() {
             <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight drop-shadow-lg">{t.hero.title}</h1>
             <p className="text-lg md:text-xl text-white/90 font-light mb-10 max-w-2xl mx-auto leading-relaxed">{t.hero.subtitle}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
-              <Button size="lg" onClick={() => scrollTo('contact')} className="text-base px-8 py-5 w-full sm:w-auto" data-testid="button-hero-book">
+              <Button size="lg" onClick={() => scrollTo('booking')} className="text-base px-8 py-5 w-full sm:w-auto" data-testid="button-hero-book">
                 {t.hero.book}
               </Button>
               <Button size="lg" variant="outline" asChild className="text-base px-8 py-5 w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border-white/40 backdrop-blur-sm">
@@ -635,7 +635,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Booking / Contact ── */}
-      <section id="contact" className="py-24 bg-card">
+      <section id="booking" className="py-24 bg-card">
         <div className="container mx-auto px-4 max-w-3xl">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.booking.title}</h2>

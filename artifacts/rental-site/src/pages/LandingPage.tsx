@@ -4,7 +4,7 @@ import {
   MapPin, Phone, Users, BedDouble, Bath, Mountain, Play,
   Coffee, Wifi, Car, X, Globe, ChevronLeft, ChevronRight, Settings,
   Tv, Wind, Refrigerator, Microwave, Utensils, Instagram,
-  Check,
+  Check, Volume2, VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +22,7 @@ const WHATSAPP_BASE = "https://wa.me/994556673067";
 const AIRBNB_URL = "https://www.airbnb.co.uk/rooms/1720411060516391898?unique_share_id=644c77f5-cf50-4094-a306-28f8e11356e3&viralityEntryPoint=1&s=76";
 const INSTAGRAM_URL = "https://www.instagram.com/qubagardenresort/";
 const INSTAGRAM_HANDLE = "@qubagardenresort";
+const WATERFALL_VIDEO = `${import.meta.env.BASE_URL}media/videos/waterfall.mp4`;
 
 /* ─── hooks ─── */
 function useLang() {
@@ -351,6 +352,9 @@ export default function LandingPage() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [lightbox, setLightbox] = useState<{ images: string[]; idx: number } | null>(null);
   const [galleryTab, setGalleryTab] = useState(0);
+  const aboutSectionRef = useRef<HTMLElement>(null);
+  const aboutVideoRef = useRef<HTMLVideoElement>(null);
+  const [aboutSoundOn, setAboutSoundOn] = useState(false);
 
   /* booking form state */
   const [checkin, setCheckin] = useState('');
@@ -370,6 +374,55 @@ export default function LandingPage() {
   useEffect(() => () => { if (footerTimer.current) clearTimeout(footerTimer.current); }, []);
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+
+  const toggleAboutSound = () => {
+    const video = aboutVideoRef.current;
+    const nextSoundOn = !aboutSoundOn;
+    setAboutSoundOn(nextSoundOn);
+    if (video) {
+      video.muted = !nextSoundOn;
+      video.volume = nextSoundOn ? 0.2 : 0;
+      video.play().catch(() => setAboutSoundOn(false));
+    }
+  };
+
+  useEffect(() => {
+    const video = aboutVideoRef.current;
+    const section = aboutSectionRef.current;
+    if (!video || !section) return;
+
+    let frame = 0;
+    const updateVolume = () => {
+      frame = 0;
+      if (!aboutSoundOn) {
+        video.volume = 0;
+        video.muted = true;
+        return;
+      }
+
+      const rect = section.getBoundingClientRect();
+      const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+      const ratio = Math.max(0, Math.min(1, visible / Math.min(rect.height, window.innerHeight)));
+      const volume = Math.max(0, Math.min(1, (ratio - 0.12) / 0.55));
+
+      video.volume = volume;
+      video.muted = volume <= 0.02;
+      if (volume > 0.02) video.play().catch(() => setAboutSoundOn(false));
+    };
+
+    const scheduleUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateVolume);
+    };
+
+    updateVolume();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, [aboutSoundOn]);
 
   /* build WhatsApp booking message */
   const buildWhatsAppUrl = () => {
@@ -478,17 +531,39 @@ export default function LandingPage() {
       </section>
 
       {/* ── About ── */}
-      <section id="about" className="py-24">
-        <div className="container mx-auto px-4 max-w-6xl">
+      <section id="about" ref={aboutSectionRef} className="relative min-h-[100svh] py-24 overflow-hidden">
+        <video
+          ref={aboutVideoRef}
+          src={WATERFALL_VIDEO}
+          autoPlay
+          muted={!aboutSoundOn}
+          loop
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ objectPosition: "57% center" }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-black/40 sm:bg-none sm:bg-black/35" />
+        <button
+          type="button"
+          onClick={toggleAboutSound}
+          className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-black/35 text-white backdrop-blur-sm transition-colors hover:bg-black/50"
+          aria-label={aboutSoundOn ? "Mute waterfall sound" : "Play waterfall sound"}
+          data-testid="button-about-sound"
+        >
+          {aboutSoundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+        </button>
+        <div className="relative z-10 container mx-auto px-4 max-w-6xl">
           <Reveal className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.about.title}</h2>
+            <h2 className="text-3xl md:text-5xl font-serif text-white mb-4">{t.about.title}</h2>
             <div className="w-16 h-1 bg-secondary mx-auto mb-6" />
-            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed text-base">{t.about.subtitle}</p>
+            <p className="text-white/85 max-w-3xl mx-auto leading-relaxed text-base">{t.about.subtitle}</p>
           </Reveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {t.about.rooms.map((room, i) => (
               <Reveal key={room.name} delay={i * 0.08}>
-                <Card className="h-full border-border/60 hover:shadow-lg transition-shadow duration-300">
+                <Card className="h-full bg-white/78 backdrop-blur-md border-white/45 shadow-lg transition-shadow duration-300 hover:shadow-xl sm:bg-white/92 sm:backdrop-blur-sm">
                   <CardContent className="p-6">
                     <h3 className="font-serif text-xl text-foreground mb-4 pb-3 border-b border-border">{room.name}</h3>
                     {'items' in room ? (

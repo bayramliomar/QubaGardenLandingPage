@@ -399,9 +399,9 @@ export default function LandingPage() {
 
       {/* ── Navbar ── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${scrolled ? 'bg-white/96 backdrop-blur-md shadow-sm border-b border-border/60' : 'bg-transparent'}`}>
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-2.5 sm:px-4 h-16 flex items-center justify-between gap-2">
           <button onClick={() => scrollTo('hero')}
-            className={`font-serif text-[clamp(1rem,3.5vw,1.25rem)] font-semibold whitespace-nowrap transition-colors duration-300 ${scrolled ? 'text-primary' : 'text-white'}`}>
+            className={`font-serif text-[clamp(0.88rem,3.2vw,1.25rem)] font-semibold whitespace-nowrap transition-colors duration-300 ${scrolled ? 'text-primary' : 'text-white'}`}>
             {t.siteName}
           </button>
           <div className="hidden md:flex items-center space-x-5 text-sm font-medium">
@@ -419,18 +419,18 @@ export default function LandingPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-0.5">
-              <Globe className={`w-4 h-4 ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`} />
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center gap-0 sm:gap-0.5">
+              <Globe className={`hidden min-[380px]:block w-4 h-4 ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`} />
               {(['az','en','ru'] as Language[]).map(l => (
                 <button key={l} onClick={() => setLang(l)} data-testid={`lang-${l}`}
-                  className={`px-1.5 py-0.5 text-xs uppercase font-medium rounded transition-colors ${lang === l ? (scrolled ? 'text-primary font-bold' : 'text-white font-bold') : (scrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/60 hover:text-white')}`}>
+                  className={`px-1 sm:px-1.5 py-0.5 text-[11px] sm:text-xs uppercase font-medium rounded transition-colors ${lang === l ? (scrolled ? 'text-primary font-bold' : 'text-white font-bold') : (scrolled ? 'text-muted-foreground hover:text-foreground' : 'text-white/60 hover:text-white')}`}>
                   {l.toUpperCase()}
                 </button>
               ))}
             </div>
             <Button size="sm" onClick={() => scrollTo('booking')} data-testid="button-nav-book"
-              className={!scrolled ? 'bg-white/20 hover:bg-white/30 text-white border-white/30 border backdrop-blur-sm' : ''}>
+              className={`shrink-0 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap ${!scrolled ? 'bg-white/20 hover:bg-white/30 text-white border-white/30 border backdrop-blur-sm' : ''}`}>
               {t.nav.bookNow}
             </Button>
           </div>

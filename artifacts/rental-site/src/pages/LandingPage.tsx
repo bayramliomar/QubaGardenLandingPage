@@ -20,6 +20,8 @@ const MAPS_EMBED = "https://maps.google.com/maps?q=41.2389011,48.3042423&output=
 const PHONE = "+994556673067";
 const WHATSAPP_BASE = "https://wa.me/994556673067";
 const AIRBNB_URL = "https://www.airbnb.co.uk/rooms/1720411060516391898?unique_share_id=644c77f5-cf50-4094-a306-28f8e11356e3&viralityEntryPoint=1&s=76";
+const INSTAGRAM_URL = "https://www.instagram.com/qubagardenresort/";
+const INSTAGRAM_HANDLE = "@qubagardenresort";
 
 /* ─── hooks ─── */
 function useLang() {
@@ -462,6 +464,11 @@ export default function LandingPage() {
               <Button size="lg" variant="outline" asChild className="text-base px-8 py-5 w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border-white/40 backdrop-blur-sm">
                 <a href={AIRBNB_URL} target="_blank" rel="noopener noreferrer" data-testid="button-hero-airbnb">{t.hero.airbnb}</a>
               </Button>
+              <Button size="lg" variant="outline" asChild className="text-base px-8 py-5 w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border-white/40 backdrop-blur-sm">
+                <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" data-testid="button-hero-instagram">
+                  <Instagram className="w-5 h-5" />{INSTAGRAM_HANDLE}
+                </a>
+              </Button>
             </div>
           </motion.div>
         </div>
@@ -768,6 +775,9 @@ export default function LandingPage() {
               <a href={AIRBNB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm hover:text-zinc-200 transition-colors" data-testid="footer-airbnb">
                 <svg className="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M12.001 1.892a3.257 3.257 0 00-3.12 2.31C6.893 8.526 3.997 13.476 1.998 17.75c-.997 2.128.25 4.75 2.623 5.19 1.187.22 2.41-.164 3.25-1.024l4.128-4.222 4.128 4.222c.84.86 2.063 1.244 3.25 1.025 2.373-.44 3.62-3.063 2.623-5.19-1.999-4.274-4.895-9.224-6.883-13.548a3.257 3.257 0 00-3.12-2.31zm0 2.13c.553 0 1.058.32 1.301.82C15.29 8.895 18.2 13.87 20.2 18.15c.42.898-.117 1.942-1.08 2.12-.487.09-.98-.068-1.327-.419l-5.79-5.924-5.79 5.924a1.38 1.38 0 01-1.328.42c-.963-.18-1.5-1.223-1.08-2.121 2-4.28 4.908-9.255 6.898-13.308a1.42 1.42 0 011.3-.82z"/></svg>
                 Airbnb
+              </a>
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm hover:text-zinc-200 transition-colors" data-testid="footer-instagram">
+                <Instagram className="w-4 h-4 text-secondary" />{INSTAGRAM_HANDLE}
               </a>
             </div>
             <div className="space-y-3">

@@ -12,6 +12,7 @@ import { type Language, LANG_KEY, translations, type AdminTranslation } from "@/
 import {
   loadMedia, saveMedia, resetMedia, getYouTubeId, tryAlternateImageFormat,
   FLOOR1_KEYS, FLOOR2_KEYS, OUTDOOR_KEYS,
+  WATERFALL_VIDEO_PATH,
   type MediaStore, type MediaSlot, defaultMedia,
 } from "@/media";
 
@@ -22,8 +23,6 @@ const WHATSAPP_BASE = "https://wa.me/994556673067";
 const AIRBNB_URL = "https://www.airbnb.co.uk/rooms/1720411060516391898?unique_share_id=644c77f5-cf50-4094-a306-28f8e11356e3&viralityEntryPoint=1&s=76";
 const INSTAGRAM_URL = "https://www.instagram.com/qubagardenresort/";
 const INSTAGRAM_HANDLE = "@qubagardenresort";
-const WATERFALL_VIDEO = `${import.meta.env.BASE_URL}media/videos/waterfall.mp4`;
-
 /* ─── hooks ─── */
 function useLang() {
   const [lang, setLangState] = useState<Language>(() => {
@@ -534,7 +533,7 @@ export default function LandingPage() {
       <section id="about" ref={aboutSectionRef} className="relative min-h-[100svh] py-24 overflow-hidden">
         <video
           ref={aboutVideoRef}
-          src={WATERFALL_VIDEO}
+          src={WATERFALL_VIDEO_PATH}
           autoPlay
           muted={!aboutSoundOn}
           loop

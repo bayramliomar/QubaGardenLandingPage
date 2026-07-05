@@ -27,6 +27,7 @@ export type MediaSlot =
 export type MediaStore = Record<MediaSlot, string>;
 
 export const COVER_VIDEO_PATH = `${MEDIA_BASE_URL}/videos/cover.mp4`;
+export const WATERFALL_VIDEO_PATH = `${MEDIA_BASE_URL}/videos/waterfall.mp4`;
 
 function slotToOptimizedPath(slot: string): string {
   const fileName = `${slot.replace('_', '-')}-optimized.jpg`;

@@ -14,6 +14,42 @@ if (Number.isNaN(port) || port <= 0) {
 
 const basePath = process.env.BASE_PATH ?? "/";
 
+const browserHeaders = {
+  "Accept": "text/calendar,text/plain;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9,az;q=0.8",
+  "Cache-Control": "no-cache",
+  "Pragma": "no-cache",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+};
+
+async function fetchAvailabilityFeed(feedUrl: URL) {
+  const referer = feedUrl.hostname.includes("booking.com")
+    ? "https://www.booking.com/"
+    : "https://www.airbnb.com/";
+
+  const primary = await fetch(feedUrl.toString(), {
+    headers: {
+      ...browserHeaders,
+      Referer: referer,
+      Origin: referer,
+    },
+  });
+
+  if (primary.ok) {
+    return primary;
+  }
+
+  const retry = await fetch(feedUrl.toString(), {
+    headers: {
+      ...browserHeaders,
+      Referer: referer,
+    },
+  });
+
+  return retry;
+}
+
 function availabilityProxyPlugin(): Plugin {
   const allowedHosts = new Set(["www.airbnb.com", "airbnb.com", "ical.booking.com"]);
 
@@ -41,11 +77,7 @@ function availabilityProxyPlugin(): Plugin {
             throw new Error("Unsupported feed host");
           }
 
-          const response = await fetch(upstream.toString(), {
-            headers: {
-              Accept: "text/calendar,text/plain;q=0.9,*/*;q=0.8",
-            },
-          });
+          const response = await fetchAvailabilityFeed(upstream);
 
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -85,11 +117,7 @@ function availabilityProxyPlugin(): Plugin {
             throw new Error("Unsupported feed host");
           }
 
-          const response = await fetch(upstream.toString(), {
-            headers: {
-              Accept: "text/calendar,text/plain;q=0.9,*/*;q=0.8",
-            },
-          });
+          const response = await fetchAvailabilityFeed(upstream);
 
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);

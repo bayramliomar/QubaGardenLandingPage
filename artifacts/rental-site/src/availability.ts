@@ -196,6 +196,7 @@ function parseBusyDatesFromIcs(raw: string): Set<string> {
 export async function fetchBusyDates(feedUrls: string[]): Promise<FetchAvailabilityResult> {
   const blockedDates = new Set<string>();
   const errors: string[] = [];
+  const seenErrors = new Set<string>();
 
   const tasks = feedUrls.map(async (url) => {
     try {
@@ -208,7 +209,11 @@ export async function fetchBusyDates(feedUrls: string[]): Promise<FetchAvailabil
       return parseBusyDatesFromIcs(text);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      errors.push(`${new URL(url).hostname}: ${message}`);
+      const normalized = `${new URL(url).hostname}: ${message}`;
+      if (!seenErrors.has(normalized)) {
+        seenErrors.add(normalized);
+        errors.push(normalized);
+      }
       return new Set<string>();
     }
   });

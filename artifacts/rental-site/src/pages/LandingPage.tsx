@@ -30,7 +30,7 @@ const MAPS_URL = "https://www.google.com/maps/place/Quba+Garden+Resort/@41.23890
 const MAPS_EMBED = "https://maps.google.com/maps?q=41.2389011,48.3042423&output=embed&hl=az&z=15";
 const PHONE = "+994556673067";
 const WHATSAPP_BASE = "https://wa.me/994556673067";
-const AIRBNB_URL = "https://www.airbnb.co.uk/rooms/1720411060516391898?unique_share_id=644c77f5-cf50-4094-a306-28f8e11356e3&viralityEntryPoint=1&s=76";
+const AIRBNB_URL = "https://www.airbnb.co.uk/users/profile/1720408629445485767?previous_page_name=PdpHomeMarketplace";
 const INSTAGRAM_URL = "https://www.instagram.com/qubagardenresort/";
 const INSTAGRAM_HANDLE = "@qubagardenresort";
 /* â”€â”€â”€ hooks â”€â”€â”€ */
@@ -737,8 +737,8 @@ export default function LandingPage() {
             <div className="w-16 h-1 bg-secondary mx-auto mb-4" />
             <p className="text-muted-foreground max-w-2xl mx-auto">{t.booking.subtitle}</p>
           </Reveal>
-          <div className="grid min-w-0 gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] lg:items-start">
-            <Reveal delay={0.05} className="min-w-0">
+          <div className="grid min-w-0 justify-items-center gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] lg:items-start lg:justify-items-stretch">
+            <Reveal delay={0.05} className="min-w-0 w-full max-w-[320px] min-[390px]:max-w-[360px] sm:max-w-2xl lg:max-w-none mx-auto">
               <Card className="h-full min-w-0 shadow-lg sm:overflow-hidden sm:shadow-xl border-border/60">
                 <CardContent className="min-w-0 p-2.5 min-[390px]:p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -773,7 +773,7 @@ export default function LandingPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-center sm:text-left">
                       <h3 className="font-serif text-xl min-[390px]:text-2xl sm:text-3xl text-foreground capitalize">{monthLabel}</h3>
-                      <p className="mx-auto max-w-[292px] min-[375px]:max-w-[320px] min-[430px]:max-w-[360px] lg:max-w-none text-[11px] min-[390px]:text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
+                      <p className="mx-auto max-w-[250px] lg:max-w-none text-[11px] min-[390px]:text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <button
@@ -796,15 +796,15 @@ export default function LandingPage() {
                   </div>
 
                   <div className="w-full min-w-0 pb-1">
-                    <div className="mx-auto w-full max-w-[292px] min-[375px]:max-w-[320px] min-[430px]:max-w-[360px] md:max-w-[420px] lg:max-w-none">
-                      <div className="grid grid-cols-7 gap-1 lg:gap-2 text-center text-[8px] min-[390px]:text-[9px] lg:text-[11px] uppercase tracking-normal lg:tracking-[0.18em] text-muted-foreground">
+                    <div className="mx-auto w-full max-w-[276px] min-[390px]:max-w-[290px] lg:max-w-none">
+                      <div className="grid grid-cols-[repeat(7,36px)] min-[390px]:grid-cols-[repeat(7,38px)] lg:grid-cols-7 gap-1 lg:gap-2 text-center text-[8px] min-[390px]:text-[9px] lg:text-[11px] uppercase tracking-normal lg:tracking-[0.18em] text-muted-foreground">
                         {weekdayLabels.map(day => <div key={day}>{day}</div>)}
                       </div>
 
-                      <div className="grid grid-cols-7 gap-1 lg:gap-2 mt-1 lg:mt-2">
+                      <div className="grid grid-cols-[repeat(7,36px)] min-[390px]:grid-cols-[repeat(7,38px)] lg:grid-cols-7 gap-1 lg:gap-2 mt-1 lg:mt-2">
                         {monthCells.map((cell, index) => {
                           if (!cell) {
-                            return <div key={`empty-${index}`} className="h-[38px] min-[375px]:h-[42px] min-[430px]:h-[46px] md:h-[52px] lg:aspect-square lg:h-auto rounded-md lg:rounded-xl bg-transparent" />;
+                            return <div key={`empty-${index}`} className="h-[38px] min-[390px]:h-[40px] lg:aspect-square lg:h-auto rounded-md lg:rounded-xl bg-transparent" />;
                           }
 
                           const key = formatDateKey(cell);
@@ -820,7 +820,7 @@ export default function LandingPage() {
                               key={key}
                               type="button"
                               onClick={() => handleCalendarDayClick(cell)}
-                              className={`relative h-[38px] min-[375px]:h-[42px] min-[430px]:h-[46px] md:h-[52px] min-w-0 lg:aspect-square lg:h-auto rounded-[0.55rem] min-[390px]:rounded-md lg:rounded-xl border text-[9px] min-[390px]:text-[10px] lg:text-sm font-medium transition-all ${isBlocked
+                              className={`relative h-[38px] min-[390px]:h-[40px] min-w-0 lg:aspect-square lg:h-auto rounded-[0.55rem] min-[390px]:rounded-md lg:rounded-xl border text-[9px] min-[390px]:text-[10px] lg:text-sm font-medium transition-all ${isBlocked
                                 ? isPast
                                   ? "bg-zinc-100 text-zinc-400 border-zinc-200 line-through cursor-not-allowed"
                                   : "bg-red-100 text-red-500 border-red-200 line-through cursor-not-allowed"
@@ -841,7 +841,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="mx-auto flex w-full max-w-[292px] min-[375px]:max-w-[320px] min-[430px]:max-w-[360px] md:max-w-[420px] lg:max-w-none flex-wrap items-center gap-1.5 min-[390px]:gap-2 lg:gap-3 text-[9px] min-[390px]:text-[10px] lg:text-xs text-muted-foreground">
+                  <div className="mx-auto flex w-full max-w-[250px] lg:max-w-none flex-wrap items-center gap-1.5 min-[390px]:gap-2 lg:gap-3 text-[9px] min-[390px]:text-[10px] lg:text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5 lg:gap-2"><span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full border border-green-200 bg-green-50" /> {t.booking.available}</span>
                     <span className="inline-flex items-center gap-1.5 lg:gap-2"><span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full border border-green-700 bg-green-600" /> {t.booking.selected}</span>
                     <span className="inline-flex items-center gap-1.5 lg:gap-2"><span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full border border-red-200 bg-red-100" /> {t.booking.blocked}</span>
@@ -865,7 +865,7 @@ export default function LandingPage() {
               </Card>
             </Reveal>
 
-            <Reveal delay={0.1}>
+            <Reveal delay={0.1} className="min-w-0 w-full max-w-[320px] min-[390px]:max-w-[360px] sm:max-w-2xl lg:max-w-none mx-auto">
               <Card className="shadow-xl border-border/60 h-full bg-card/95">
                 <CardContent className="p-4 sm:p-6 md:p-8 space-y-5 font-sans">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

@@ -27,7 +27,7 @@ export const translations = {
       subtitle: 'Ailəniz və dostlarınızla Qubanın təmiz havasında, dağ mənzərəsi ilə rahat istirahət edin.',
       book: 'Rezervasiya et',
       whatsapp: 'WhatsApp ilə əlaqə',
-      airbnb: 'Airbnb-də bax',
+      airbnb: 'Airbnb-də bütün listlər',
     },
     about: {
       title: 'Haqqımızda',
@@ -116,7 +116,7 @@ export const translations = {
       note: 'Qeyd (istəyə bağlı)',
       notePlaceholder: 'Mərtəbə seçimi, xüsusi istək və s.',
       whatsappBtn: 'WhatsApp ilə rezervasiya et',
-      airbnbBtn: 'Airbnb üzərindən rezervasiya et',
+      airbnbBtn: 'Airbnb-də bütün listlərə bax',
     },
     location: {
       title: 'Haradayıq?',
@@ -165,7 +165,7 @@ export const translations = {
       subtitle: 'Relax with your family and friends in the fresh mountain air of Quba, surrounded by stunning natural scenery.',
       book: 'Book Now',
       whatsapp: 'Contact on WhatsApp',
-      airbnb: 'View on Airbnb',
+      airbnb: 'View all Airbnb listings',
     },
     about: {
       title: 'About Us',
@@ -254,7 +254,7 @@ export const translations = {
       note: 'Note (optional)',
       notePlaceholder: 'Floor preference, special requests, etc.',
       whatsappBtn: 'Book via WhatsApp',
-      airbnbBtn: 'Book via Airbnb',
+      airbnbBtn: 'View all Airbnb listings',
     },
     location: {
       title: 'Where Are We?',
@@ -303,7 +303,7 @@ export const translations = {
       subtitle: 'Отдохните с семьёй и друзьями на свежем горном воздухе Кубы в окружении живописной природы.',
       book: 'Забронировать',
       whatsapp: 'Написать в WhatsApp',
-      airbnb: 'Посмотреть на Airbnb',
+      airbnb: 'Все объявления Airbnb',
     },
     about: {
       title: 'О нас',
@@ -392,7 +392,7 @@ export const translations = {
       note: 'Примечание (необязательно)',
       notePlaceholder: 'Выбор этажа, особые пожелания и т.д.',
       whatsappBtn: 'Забронировать через WhatsApp',
-      airbnbBtn: 'Забронировать через Airbnb',
+      airbnbBtn: 'Все объявления Airbnb',
     },
     location: {
       title: 'Где мы находимся?',

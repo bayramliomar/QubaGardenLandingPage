@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useInView } from "framer-motion";
 import {
   MapPin, Phone, Users, BedDouble, Bath, Mountain, Play,
@@ -15,6 +15,16 @@ import {
   WATERFALL_VIDEO_PATH,
   type MediaStore, type MediaSlot, defaultMedia,
 } from "@/media";
+import {
+  loadCalendarConfig,
+  saveCalendarConfig,
+  resetCalendarConfig,
+  defaultCalendarConfig,
+  splitFeedUrls,
+  fetchBusyDates,
+  type CalendarConfig,
+  type FloorId,
+} from "@/availability";
 
 const MAPS_URL = "https://www.google.com/maps/place/Quba+Garden+Resort/@41.2389011,48.151807,12z/data=!4m10!1m2!2m1!1squba+garden+resort!3m6!1s0x40378ff704e28249:0xfe2a35e3985784ad!8m2!3d41.2389011!4d48.3042423!15sChJxdWJhIGdhcmRlbiByZXNvcnSSARhob2xpZGF5X2FwYXJ0bWVudF9yZW50YWzgAQA!16s%2Fg%2F11nqx_803q?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D";
 const MAPS_EMBED = "https://maps.google.com/maps?q=41.2389011,48.3042423&output=embed&hl=az&z=15";
@@ -23,7 +33,7 @@ const WHATSAPP_BASE = "https://wa.me/994556673067";
 const AIRBNB_URL = "https://www.airbnb.co.uk/rooms/1720411060516391898?unique_share_id=644c77f5-cf50-4094-a306-28f8e11356e3&viralityEntryPoint=1&s=76";
 const INSTAGRAM_URL = "https://www.instagram.com/qubagardenresort/";
 const INSTAGRAM_HANDLE = "@qubagardenresort";
-/* ─── hooks ─── */
+/* â”€â”€â”€ hooks â”€â”€â”€ */
 function useLang() {
   const [lang, setLangState] = useState<Language>(() => {
     const s = localStorage.getItem(LANG_KEY);
@@ -50,7 +60,102 @@ function useScrolled(threshold = 60) {
   return scrolled;
 }
 
-/* ─── video embed ─── */
+function formatDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseDateKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function isSameDay(left: Date, right: Date): boolean {
+  return formatDateKey(left) === formatDateKey(right);
+}
+
+function isBeforeDay(left: Date, right: Date): boolean {
+  return formatDateKey(left) < formatDateKey(right);
+}
+
+function isAfterDay(left: Date, right: Date): boolean {
+  return formatDateKey(left) > formatDateKey(right);
+}
+
+function diffInNights(checkinKey: string, checkoutKey: string): number {
+  const start = parseDateKey(checkinKey);
+  const end = parseDateKey(checkoutKey);
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000));
+}
+
+function getLocale(lang: Language): string {
+  return lang === "az" ? "az-AZ" : lang === "ru" ? "ru-RU" : "en-US";
+}
+
+function shiftMonth(month: Date, delta: number): Date {
+  return new Date(month.getFullYear(), month.getMonth() + delta, 1);
+}
+
+function buildMonthCells(month: Date): Array<Date | null> {
+  const firstDay = startOfMonth(month).getDay();
+  const daysInMonth = endOfMonth(month).getDate();
+  const cells: Array<Date | null> = [];
+
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(new Date(month.getFullYear(), month.getMonth(), day));
+  }
+
+  return cells;
+}
+
+function isBlockedOrPast(date: Date, blockedDates: Set<string>): boolean {
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return isBeforeDay(date, todayStart) || blockedDates.has(formatDateKey(date));
+}
+
+function isPastDate(date: Date): boolean {
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return isBeforeDay(date, todayStart);
+}
+
+function mergeDateSets(...sets: Set<string>[]): Set<string> {
+  const merged = new Set<string>();
+  for (const set of sets) {
+    for (const date of set) merged.add(date);
+  }
+  return merged;
+}
+
+function rangeContainsBlockedDates(startKey: string, endKey: string, blockedDates: Set<string>): boolean {
+  const start = parseDateKey(startKey);
+  const end = parseDateKey(endKey);
+  if (end <= start) return true;
+
+  for (let current = start; isBeforeDay(current, end); current = addDays(current, 1)) {
+    if (blockedDates.has(formatDateKey(current))) return true;
+  }
+
+  return false;
+}
+
+/* â”€â”€â”€ video embed â”€â”€â”€ */
 function VideoEmbed({ url, autoPlay = false, muted = true, className = "" }: {
   url: string; autoPlay?: boolean; muted?: boolean; className?: string;
 }) {
@@ -63,7 +168,7 @@ function VideoEmbed({ url, autoPlay = false, muted = true, className = "" }: {
   return <video src={url} autoPlay={autoPlay} muted={muted} loop playsInline preload={autoPlay ? 'auto' : 'metadata'} className={className} />;
 }
 
-/* ─── scroll reveal ─── */
+/* â”€â”€â”€ scroll reveal â”€â”€â”€ */
 function Reveal({ children, delay = 0, className = "", y = 36 }: {
   children: React.ReactNode; delay?: number; className?: string; y?: number;
 }) {
@@ -79,25 +184,8 @@ function Reveal({ children, delay = 0, className = "", y = 36 }: {
   );
 }
 
-/* ─── gallery image ─── */
-function GalleryImg({ src, index, onClick }: {
-  src: string; index: number; onClick?: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: false, amount: 0.08 });
-  const delay = ((index % 3) + Math.floor(index / 3)) * 0.08;
-  return (
-    <motion.div ref={ref} className="mb-4 overflow-hidden rounded-2xl cursor-pointer bg-muted shadow-sm break-inside-avoid"
-      animate={inView ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.9, y: 24 }}
-      transition={{ duration: 0.55, delay, ease: "easeOut" }}
-      initial={{ opacity: 0, scale: 0.9, y: 24 }}
-      onClick={onClick}>
-      <img src={src} alt="" loading="lazy" decoding="async" onError={tryAlternateImageFormat} className="w-full h-auto object-cover transition-transform duration-500 hover:scale-[1.02]" />
-    </motion.div>
-  );
-}
 
-/* ─── floor carousel ─── */
+/* â”€â”€â”€ floor carousel â”€â”€â”€ */
 function FloorCarousel({ images, testId }: { images: string[]; testId: string }) {
   const [idx, setIdx] = useState(0);
   const prev = () => setIdx(i => (i - 1 + images.length) % images.length);
@@ -127,7 +215,7 @@ function FloorCarousel({ images, testId }: { images: string[]; testId: string })
   );
 }
 
-/* ─── video slot ─── */
+/* â”€â”€â”€ video slot â”€â”€â”€ */
 function VideoSlot({ url, label, poster }: { url: string; label: string; poster?: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -141,7 +229,7 @@ function VideoSlot({ url, label, poster }: { url: string; label: string; poster?
             <Play className="w-5 h-5 text-white ml-1" />
           </div>
           <span className="text-white text-sm font-medium">{label}</span>
-          {!url && <span className="text-white/50 text-xs text-center px-4">Admin panelindən video URL əlavə edin</span>}
+          {!url && <span className="text-white/50 text-xs text-center px-4">Admin panelindÉ™n video URL É™lavÉ™ edin</span>}
         </div>
       </div>
       {open && url && (
@@ -158,68 +246,38 @@ function VideoSlot({ url, label, poster }: { url: string; label: string; poster?
   );
 }
 
-/* ─── lightbox ─── */
-function Lightbox({ images, startIdx, onClose }: { images: string[]; startIdx: number; onClose: () => void }) {
-  const [idx, setIdx] = useState(startIdx);
-  const prev = () => setIdx(i => (i - 1 + images.length) % images.length);
-  const next = () => setIdx(i => (i + 1) % images.length);
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'ArrowRight') next();
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
-  });
-  return (
-    <div className="fixed inset-0 z-[250] bg-black/95 flex items-center justify-center" onClick={onClose}>
-      <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors">
-        <X className="w-5 h-5" />
-      </button>
-      <button onClick={e => { e.stopPropagation(); prev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors">
-        <ChevronLeft className="w-6 h-6" />
-      </button>
-      <button onClick={e => { e.stopPropagation(); next(); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white transition-colors">
-        <ChevronRight className="w-6 h-6" />
-      </button>
-      <img src={images[idx]} alt="" decoding="async" onError={tryAlternateImageFormat} className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl" onClick={e => e.stopPropagation()} />
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">{idx + 1} / {images.length}</div>
-    </div>
-  );
-}
 
-/* ─── amenity icon ─── */
+/* â”€â”€â”€ amenity icon â”€â”€â”€ */
 function AmenityIcon({ name }: { name: string }) {
   const n = name.toLowerCase();
   if (n.includes('wi-fi') || n.includes('wifi')) return <Wifi className="w-6 h-6" />;
   if (n.includes('tv') || n.includes('smart')) return <Tv className="w-6 h-6" />;
   if (n.includes('kondi') || n.includes('air')) return <Wind className="w-6 h-6" />;
-  if (n.includes('soyudu') || n.includes('refrig') || n.includes('холодил')) return <Refrigerator className="w-6 h-6" />;
-  if (n.includes('mikrodalğa') || n.includes('micro') || n.includes('микро')) return <Microwave className="w-6 h-6" />;
-  if (n.includes('parkinq') || n.includes('parking') || n.includes('парков')) return <Car className="w-6 h-6" />;
+  if (n.includes('soyudu') || n.includes('refrig') || n.includes('Ñ…Ð¾Ð»Ð¾Ð´Ð¸Ð»')) return <Refrigerator className="w-6 h-6" />;
+  if (n.includes('mikrodalÄŸa') || n.includes('micro') || n.includes('Ð¼Ð¸ÐºÑ€Ð¾')) return <Microwave className="w-6 h-6" />;
+  if (n.includes('parkinq') || n.includes('parking') || n.includes('Ð¿Ð°Ñ€ÐºÐ¾Ð²')) return <Car className="w-6 h-6" />;
   if (n.includes('balkon') || n.includes('balc')) return <Mountain className="w-6 h-6" />;
-  if (n.includes('mənzərə') || n.includes('view') || n.includes('вид')) return <Mountain className="w-6 h-6" />;
-  if (n.includes('həyət') || n.includes('yard') || n.includes('двор')) return <Mountain className="w-6 h-6" />;
-  if (n.includes('çaydanı') || n.includes('kettle') || n.includes('чайн')) return <Coffee className="w-6 h-6" />;
-  if (n.includes('su') || n.includes('water') || n.includes('вод')) return <Check className="w-6 h-6" />;
-  if (n.includes('mətbəx') || n.includes('kitchen') || n.includes('кухн')) return <Utensils className="w-6 h-6" />;
+  if (n.includes('mÉ™nzÉ™rÉ™') || n.includes('view') || n.includes('Ð²Ð¸Ð´')) return <Mountain className="w-6 h-6" />;
+  if (n.includes('hÉ™yÉ™t') || n.includes('yard') || n.includes('Ð´Ð²Ð¾Ñ€')) return <Mountain className="w-6 h-6" />;
+  if (n.includes('Ã§aydanÄ±') || n.includes('kettle') || n.includes('Ñ‡Ð°Ð¹Ð½')) return <Coffee className="w-6 h-6" />;
+  if (n.includes('su') || n.includes('water') || n.includes('Ð²Ð¾Ð´')) return <Check className="w-6 h-6" />;
+  if (n.includes('mÉ™tbÉ™x') || n.includes('kitchen') || n.includes('ÐºÑƒÑ…Ð½')) return <Utensils className="w-6 h-6" />;
   return <Utensils className="w-6 h-6" />;
 }
 
-/* ─── floor amenity icon ─── */
+/* â”€â”€â”€ floor amenity icon â”€â”€â”€ */
 function FloorAmenityIcon({ text }: { text: string }) {
   const l = text.toLowerCase();
-  if (l.includes('yataq') || l.includes('bed') || l.includes('спальн')) return <BedDouble className="w-4 h-4 text-secondary" />;
-  if (l.includes('hamam') || l.includes('bath') || l.includes('ванн')) return <Bath className="w-4 h-4 text-secondary" />;
-  if (l.includes('mətbəx') || l.includes('kitchen') || l.includes('кухн')) return <Coffee className="w-4 h-4 text-secondary" />;
+  if (l.includes('yataq') || l.includes('bed') || l.includes('ÑÐ¿Ð°Ð»ÑŒÐ½')) return <BedDouble className="w-4 h-4 text-secondary" />;
+  if (l.includes('hamam') || l.includes('bath') || l.includes('Ð²Ð°Ð½Ð½')) return <Bath className="w-4 h-4 text-secondary" />;
+  if (l.includes('mÉ™tbÉ™x') || l.includes('kitchen') || l.includes('ÐºÑƒÑ…Ð½')) return <Coffee className="w-4 h-4 text-secondary" />;
   if (l.includes('wi-fi') || l.includes('wifi')) return <Wifi className="w-4 h-4 text-secondary" />;
   if (l.includes('balkon') || l.includes('panoram')) return <Mountain className="w-4 h-4 text-secondary" />;
-  if (l.includes('həyət') || l.includes('yard') || l.includes('двор')) return <Car className="w-4 h-4 text-secondary" />;
+  if (l.includes('hÉ™yÉ™t') || l.includes('yard') || l.includes('Ð´Ð²Ð¾Ñ€')) return <Car className="w-4 h-4 text-secondary" />;
   return <Mountain className="w-4 h-4 text-secondary" />;
 }
 
-/* ─── file upload helper ─── */
+/* â”€â”€â”€ file upload helper â”€â”€â”€ */
 function FileUploadBtn({ onFile, uploadBtn, uploadWarning }: {
   onFile: (dataUrl: string) => void; uploadBtn: string; uploadWarning: string;
 }) {
@@ -247,14 +305,17 @@ function FileUploadBtn({ onFile, uploadBtn, uploadWarning }: {
   );
 }
 
-/* ─── admin panel ─── */
-function AdminPanel({ media, onUpdate, onReset, onClose, adminT }: {
-  media: MediaStore; onUpdate: (s: MediaStore) => void;
-  onReset: () => void; onClose: () => void; adminT: AdminTranslation;
+/* â”€â”€â”€ admin panel â”€â”€â”€ */
+function AdminPanel({ media, calendarConfig, onUpdate, onReset, onUpdateCalendar, onResetCalendar, onClose, adminT }: {
+  media: MediaStore; calendarConfig: CalendarConfig; onUpdate: (s: MediaStore) => void;
+  onReset: () => void; onUpdateCalendar: (s: CalendarConfig) => void; onResetCalendar: () => void;
+  onClose: () => void; adminT: AdminTranslation;
 }) {
   const [draft, setDraft] = useState<MediaStore>({ ...media });
-  const [tab, setTab] = useState<'images' | 'videos'>('images');
+  const [draftCalendar, setDraftCalendar] = useState<CalendarConfig>({ ...calendarConfig });
+  const [tab, setTab] = useState<'images' | 'videos' | 'calendar'>('images');
   const setSlot = (key: MediaSlot, val: string) => setDraft(d => ({ ...d, [key]: val }));
+  useEffect(() => { setDraftCalendar({ ...calendarConfig }); }, [calendarConfig]);
 
   function ImgRow({ label, slotKey }: { label: string; slotKey: MediaSlot }) {
     return (
@@ -286,11 +347,15 @@ function AdminPanel({ media, onUpdate, onReset, onClose, adminT }: {
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" data-testid="admin-close"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex border-b border-border px-5">
-          {(['images','videos'] as const).map(t2 => (
+          {(['images','videos','calendar'] as const).map(t2 => (
             <button key={t2} onClick={() => setTab(t2)}
               className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${tab === t2 ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
               data-testid={`admin-tab-${t2}`}>
-              {t2 === 'images' ? `${adminT.images} (${1 + FLOOR1_KEYS.length + FLOOR2_KEYS.length + OUTDOOR_KEYS.length})` : `${adminT.videos} (2)`}
+              {t2 === 'images'
+                ? `${adminT.images} (${1 + FLOOR1_KEYS.length + FLOOR2_KEYS.length + OUTDOOR_KEYS.length})`
+                : t2 === 'videos'
+                  ? `${adminT.videos} (2)`
+                  : 'Calendar'}
             </button>
           ))}
         </div>
@@ -329,13 +394,48 @@ function AdminPanel({ media, onUpdate, onReset, onClose, adminT }: {
               ))}
             </div>
           )}
+          {tab === 'calendar' && (
+            <div className="space-y-6">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Floor 1 availability feeds</p>
+                <p className="text-xs text-muted-foreground mb-3">Paste Airbnb and Booking.com .ics URLs here, one per line.</p>
+                <textarea
+                  value={draftCalendar.floor1Feeds}
+                  onChange={e => setDraftCalendar(d => ({ ...d, floor1Feeds: e.target.value }))}
+                  placeholder="https://.../calendar.ics"
+                  className="w-full min-h-28 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Floor 2 availability feeds</p>
+                <p className="text-xs text-muted-foreground mb-3">Paste Airbnb and Booking.com .ics URLs here, one per line.</p>
+                <textarea
+                  value={draftCalendar.floor2Feeds}
+                  onChange={e => setDraftCalendar(d => ({ ...d, floor2Feeds: e.target.value }))}
+                  placeholder="https://.../calendar.ics"
+                  className="w-full min-h-28 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Whole house availability feeds</p>
+                <p className="text-xs text-muted-foreground mb-3">Paste the whole-house Airbnb .ics URL here.</p>
+                <textarea
+                  value={draftCalendar.wholeHouseFeeds}
+                  onChange={e => setDraftCalendar(d => ({ ...d, wholeHouseFeeds: e.target.value }))}
+                  placeholder="https://.../calendar.ics"
+                  className="w-full min-h-24 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">These feeds are proxied through the site and merged into the availability calendar.</p>
+            </div>
+          )}
         </div>
         <div className="p-5 border-t border-border flex items-center justify-between gap-3">
-          <button onClick={() => { onReset(); setDraft({ ...defaultMedia }); }}
+          <button onClick={() => { onReset(); onResetCalendar(); setDraft({ ...defaultMedia }); setDraftCalendar({ ...defaultCalendarConfig }); }}
             className="text-sm text-muted-foreground hover:text-destructive transition-colors" data-testid="admin-reset">{adminT.reset}</button>
           <div className="flex gap-3">
             <Button variant="outline" onClick={onClose} data-testid="admin-cancel">{adminT.close}</Button>
-            <Button onClick={() => { onUpdate(draft); onClose(); }} data-testid="admin-save">{adminT.save}</Button>
+            <Button onClick={() => { onUpdate(draft); onUpdateCalendar(draftCalendar); onClose(); }} data-testid="admin-save">{adminT.save}</Button>
           </div>
         </div>
       </div>
@@ -343,14 +443,23 @@ function AdminPanel({ media, onUpdate, onReset, onClose, adminT }: {
   );
 }
 
-/* ═══════════════════════ LANDING PAGE ═══════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LANDING PAGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 export default function LandingPage() {
   const { lang, setLang, t } = useLang();
   const { media, update, reset } = useMedia();
   const scrolled = useScrolled(80);
   const [adminOpen, setAdminOpen] = useState(false);
-  const [lightbox, setLightbox] = useState<{ images: string[]; idx: number } | null>(null);
-  const [galleryTab, setGalleryTab] = useState(0);
+  const [calendarConfig, setCalendarConfig] = useState<CalendarConfig>(loadCalendarConfig);
+  const [blockedDatesByFloor, setBlockedDatesByFloor] = useState<Record<FloorId, Set<string>>>({
+    floor1: new Set(),
+    floor2: new Set(),
+    whole: new Set(),
+  });
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarErrors, setCalendarErrors] = useState<string[]>([]);
+  const [calendarRefreshedAt, setCalendarRefreshedAt] = useState<string | null>(null);
+  const [selectedFloor, setSelectedFloor] = useState<FloorId>("floor1");
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const aboutSectionRef = useRef<HTMLElement>(null);
   const aboutVideoRef = useRef<HTMLVideoElement>(null);
   const [aboutSoundOn, setAboutSoundOn] = useState(false);
@@ -361,7 +470,7 @@ export default function LandingPage() {
   const [guests, setGuests] = useState('2');
   const [bookingNote, setBookingNote] = useState('');
 
-  /* footer triple-click → admin */
+  /* footer triple-click â†’ admin */
   const footerClicks = useRef(0);
   const footerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleFooterClick = () => {
@@ -423,14 +532,58 @@ export default function LandingPage() {
     };
   }, [aboutSoundOn]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const refresh = async () => {
+      setCalendarLoading(true);
+
+      const [floor1Result, floor2Result] = await Promise.all([
+        fetchBusyDates(splitFeedUrls(calendarConfig.floor1Feeds)),
+        fetchBusyDates(splitFeedUrls(calendarConfig.floor2Feeds)),
+      ]);
+      const wholeHouseResult = await fetchBusyDates(splitFeedUrls(calendarConfig.wholeHouseFeeds));
+
+      if (cancelled) return;
+
+      setBlockedDatesByFloor({
+        floor1: floor1Result.blockedDates,
+        floor2: floor2Result.blockedDates,
+        whole: wholeHouseResult.blockedDates.size
+          ? wholeHouseResult.blockedDates
+          : mergeDateSets(floor1Result.blockedDates, floor2Result.blockedDates),
+      });
+      setCalendarErrors([...floor1Result.errors, ...floor2Result.errors, ...wholeHouseResult.errors]);
+      setCalendarRefreshedAt(new Date().toISOString());
+      setCalendarLoading(false);
+    };
+
+    refresh().catch(() => {
+      if (!cancelled) setCalendarLoading(false);
+    });
+
+    const timer = window.setInterval(() => {
+      refresh().catch(() => {
+        if (!cancelled) setCalendarLoading(false);
+      });
+    }, 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [calendarConfig]);
+
   /* build WhatsApp booking message */
   const buildWhatsAppUrl = () => {
-    const lines: string[] = ['Salam! Rezervasiya etmək istəyirəm.'];
-    if (checkin) lines.push(`Giriş tarixi: ${checkin}`);
-    if (checkout) lines.push(`Çıxış tarixi: ${checkout}`);
-    if (guests) lines.push(`Qonaq sayı: ${guests}`);
-    if (bookingNote.trim()) lines.push(`Qeyd: ${bookingNote.trim()}`);
-    return `${WHATSAPP_BASE}?text=${encodeURIComponent(lines.join('\n'))}`;
+    const lines: string[] = [t.booking.whatsappGreeting];
+    lines.push(`${t.booking.whatsappFloor}: ${selectedFloor === "floor1" ? t.booking.floor1 : selectedFloor === "floor2" ? t.booking.floor2 : t.booking.wholeHouse}`);
+    if (checkin) lines.push(`${t.booking.whatsappCheckin}: ${checkin}`);
+    if (checkout) lines.push(`${t.booking.whatsappCheckout}: ${checkout}`);
+    if (checkin && checkout) lines.push(`${t.booking.whatsappNights}: ${diffInNights(checkin, checkout)}`);
+    if (guests) lines.push(`${t.booking.whatsappGuests}: ${guests}`);
+    if (bookingNote.trim()) lines.push(`${t.booking.whatsappNote}: ${bookingNote.trim()}`);
+    return `${WHATSAPP_BASE}?text=${encodeURIComponent(lines.join("\n"))}`;
   };
 
   /* media helpers */
@@ -438,29 +591,61 @@ export default function LandingPage() {
   const floor2Imgs = FLOOR2_KEYS.map(k => media[k]);
   const outdoorImgs = OUTDOOR_KEYS.map(k => media[k]);
 
-  const galleryGroups = [
-    [...floor1Imgs, ...floor2Imgs, ...outdoorImgs],
-    floor1Imgs,
-    floor2Imgs,
-    outdoorImgs,
-  ];
-  const currentGallery = galleryGroups[galleryTab];
+  const currentBlockedDates = blockedDatesByFloor[selectedFloor];
+  const monthCells = buildMonthCells(visibleMonth);
+  const monthLabel = `${t.booking.months[visibleMonth.getMonth()]} ${visibleMonth.getFullYear()}`;
+  const weekdayLabels = t.booking.weekdays;
+  const formatSelectedDate = (key: string) => {
+    const date = parseDateKey(key);
+    return `${String(date.getDate()).padStart(2, "0")} ${t.booking.months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+  const selectedRangeInvalid = Boolean(
+    checkin && checkout && (
+      !isBeforeDay(parseDateKey(checkin), parseDateKey(checkout)) ||
+      rangeContainsBlockedDates(checkin, checkout, currentBlockedDates)
+    )
+  );
+  const selectedNights = checkin && checkout ? diffInNights(checkin, checkout) : 0;
+  const sendDisabled = !checkin || !checkout || selectedRangeInvalid;
+  const handleCalendarDayClick = (date: Date) => {
+    if (isBlockedOrPast(date, currentBlockedDates)) return;
+
+    const key = formatDateKey(date);
+    if (!checkin || checkout) {
+      setCheckin(key);
+      setCheckout("");
+      return;
+    }
+
+    const start = parseDateKey(checkin);
+    if (isSameDay(start, date)) {
+      setCheckout("");
+      return;
+    }
+
+    if (isBeforeDay(date, start)) {
+      setCheckout(checkin);
+      setCheckin(key);
+      return;
+    }
+
+    setCheckout(key);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-hidden bg-background">
 
-      {/* ── Navbar ── */}
+      {/* â”€â”€ Navbar â”€â”€ */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${scrolled ? 'bg-white/96 backdrop-blur-md shadow-sm border-b border-border/60' : 'bg-transparent'}`}>
-        <div className="container mx-auto px-2.5 sm:px-4 h-16 flex items-center justify-between gap-2">
+        <div className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between gap-2">
           <button onClick={() => scrollTo('hero')}
-            className={`font-serif text-[clamp(0.88rem,3.2vw,1.25rem)] font-semibold whitespace-nowrap transition-colors duration-300 ${scrolled ? 'text-primary' : 'text-white'}`}>
+            className={`font-serif text-[clamp(0.88rem,3.2vw,1.25rem)] max-w-[48vw] truncate font-semibold whitespace-nowrap transition-colors duration-300 ${scrolled ? 'text-primary' : 'text-white'}`}>
             {t.siteName}
           </button>
           <div className="hidden md:flex items-center space-x-5 text-sm font-medium">
             {([
               ['hero', t.nav.home],
               ['about', t.nav.about],
-              ['gallery', t.nav.gallery],
               ['amenities', t.nav.amenities],
               ['location', t.nav.location],
               ['booking', t.nav.contact],
@@ -489,24 +674,24 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero ── */}
-      <section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
+      {/* â”€â”€ Hero â”€â”€ */}
+      <section id="hero" className="relative min-h-[100svh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {media.video_hero
             ? <VideoEmbed url={media.video_hero} autoPlay muted className="w-full h-full object-cover" />
             : <img src={media.hero} alt="" decoding="async" onError={tryAlternateImageFormat} className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-black/65" />
         </div>
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+        <div className="relative z-10 text-center px-4 sm:px-6 max-w-4xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
             <a href={MAPS_URL} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-black/30 backdrop-blur-sm text-white px-4 py-2 rounded-full mb-8 hover:bg-black/40 transition-colors">
               <MapPin className="w-4 h-4 text-secondary" />
               <span className="text-sm font-medium tracking-wider">{t.hero.location}</span>
             </a>
-            <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight drop-shadow-lg">{t.hero.title}</h1>
-            <p className="text-lg md:text-xl text-white/90 font-light mb-10 max-w-2xl mx-auto leading-relaxed">{t.hero.subtitle}</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif text-white mb-5 sm:mb-6 leading-tight drop-shadow-lg">{t.hero.title}</h1>
+            <p className="text-base sm:text-lg md:text-xl text-white/90 font-light mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed">{t.hero.subtitle}</p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 flex-wrap max-w-sm sm:max-w-none mx-auto">
               <Button size="lg" onClick={() => scrollTo('booking')} className="text-base px-8 py-5 w-full sm:w-auto" data-testid="button-hero-book">
                 {t.hero.book}
               </Button>
@@ -529,8 +714,205 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ── About ── */}
-      <section id="about" ref={aboutSectionRef} className="relative min-h-[100svh] py-24 overflow-hidden">
+      {/* â”€â”€ Booking / Contact â”€â”€ */}
+      <section id="booking" className="py-24 bg-card">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <Reveal className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.booking.title}</h2>
+            <div className="w-16 h-1 bg-secondary mx-auto mb-4" />
+            <p className="text-muted-foreground max-w-2xl mx-auto">{t.booking.subtitle}</p>
+          </Reveal>
+          <div className="grid gap-6 lg:grid-cols-[1.35fr_0.85fr] lg:items-start">
+            <Reveal delay={0.05}>
+              <Card className="shadow-xl border-border/60 h-full">
+                <CardContent className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFloor("floor1")}
+                        className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${selectedFloor === "floor1" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                      >
+                        {t.booking.floor1}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFloor("floor2")}
+                        className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${selectedFloor === "floor2" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                      >
+                        {t.booking.floor2}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFloor("whole")}
+                        className={`col-span-2 sm:col-span-1 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${selectedFloor === "whole" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+                      >
+                        {t.booking.wholeHouse}
+                      </button>
+                    </div>
+                    <div className="text-xs text-muted-foreground sm:text-right">
+                      {calendarLoading ? t.booking.refreshing : calendarRefreshedAt ? `${t.booking.updated} ${new Date(calendarRefreshedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : t.booking.waiting}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-center sm:text-left">
+                      <h3 className="font-serif text-2xl sm:text-3xl text-foreground capitalize">{monthLabel}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleMonth(month => shiftMonth(month, -1))}
+                        className="w-10 h-10 rounded-full border border-border text-foreground hover:bg-accent transition-colors"
+                        aria-label={t.booking.previousMonth}
+                      >
+                        <ChevronLeft className="w-4 h-4 mx-auto" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVisibleMonth(month => shiftMonth(month, 1))}
+                        className="w-10 h-10 rounded-full border border-border text-foreground hover:bg-accent transition-colors"
+                        aria-label={t.booking.nextMonth}
+                      >
+                        <ChevronRight className="w-4 h-4 mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto -mx-1 px-1 pb-1">
+                    <div className="min-w-[340px] sm:min-w-0">
+                      <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] sm:text-[11px] uppercase tracking-[0.12em] sm:tracking-[0.18em] text-muted-foreground">
+                        {weekdayLabels.map(day => <div key={day}>{day}</div>)}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 sm:gap-2 mt-1 sm:mt-2">
+                        {monthCells.map((cell, index) => {
+                          if (!cell) {
+                            return <div key={`empty-${index}`} className="aspect-square rounded-xl bg-transparent" />;
+                          }
+
+                          const key = formatDateKey(cell);
+                          const isBlocked = isBlockedOrPast(cell, currentBlockedDates);
+                          const isPast = isPastDate(cell);
+                          const isStart = checkin === key;
+                          const isEnd = checkout === key;
+                          const isBetween = Boolean(checkin && checkout && isAfterDay(cell, parseDateKey(checkin)) && isBeforeDay(cell, parseDateKey(checkout)));
+                          const isToday = isSameDay(cell, new Date());
+
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handleCalendarDayClick(cell)}
+                              className={`aspect-square rounded-lg sm:rounded-xl border text-[11px] sm:text-sm font-medium transition-all relative ${isBlocked
+                                ? isPast
+                                  ? "bg-zinc-100 text-zinc-400 border-zinc-200 line-through cursor-not-allowed"
+                                  : "bg-red-100 text-red-500 border-red-200 line-through cursor-not-allowed"
+                                : isStart || isEnd
+                                  ? "bg-green-600 text-white border-green-700 shadow-sm"
+                                  : isBetween
+                                    ? "bg-green-100 text-green-800 border-green-300"
+                                    : "bg-green-50 text-foreground border-green-200 hover:border-green-500 hover:bg-green-100"
+                                } ${isToday ? "ring-2 ring-secondary/60" : ""}`}
+                              disabled={isBlocked}
+                              aria-label={key}
+                            >
+                              <span className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 text-[10px] sm:text-xs">{cell.getDate()}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full border border-green-200 bg-green-50" /> {t.booking.available}</span>
+                    <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full border border-green-700 bg-green-600" /> {t.booking.selected}</span>
+                    <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded-full border border-red-200 bg-red-100" /> {t.booking.blocked}</span>
+                  </div>
+
+                  {calendarErrors.length > 0 && (
+                    <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-1">
+                      <p className="font-medium">{t.booking.feedErrorTitle}</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {calendarErrors.slice(0, 3).map(err => <li key={err}>{err}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <Card className="shadow-xl border-border/60 h-full bg-card/95">
+                <CardContent className="p-4 sm:p-6 md:p-8 space-y-5 font-sans">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">{t.booking.selectedFloor}</p>
+                      <h3 className="text-xl sm:text-2xl font-semibold text-foreground">
+                        {selectedFloor === "floor1" ? t.booking.floor1 : selectedFloor === "floor2" ? t.booking.floor2 : t.booking.wholeHouse}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setCheckin(""); setCheckout(""); }}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {t.booking.clearDates}
+                    </button>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-2xl border border-border bg-background/80 px-4 py-3">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t.booking.checkin}</div>
+                      <div className="mt-1 text-sm sm:text-base font-medium text-foreground break-words">{checkin ? formatSelectedDate(checkin) : t.booking.selectDates}</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-background/80 px-4 py-3">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t.booking.checkout}</div>
+                      <div className="mt-1 text-sm sm:text-base font-medium text-foreground break-words">{checkout ? formatSelectedDate(checkout) : t.booking.selectDates}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">{t.booking.guests}</label>
+                      <input type="number" min="1" max="14" value={guests} onChange={e => setGuests(e.target.value)}
+                        data-testid="input-guests"
+                        className="w-full border border-border rounded-2xl px-4 py-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm font-sans" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">{t.booking.note}</label>
+                      <input type="text" value={bookingNote} onChange={e => setBookingNote(e.target.value)}
+                        placeholder={t.booking.notePlaceholder}
+                        data-testid="input-note"
+                        className="w-full border border-border rounded-2xl px-4 py-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm font-sans" />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">{t.booking.calendarOnly}</p>
+
+                  <div className={`rounded-2xl border px-4 py-3 text-sm font-sans ${selectedRangeInvalid ? "border-amber-300 bg-amber-50 text-amber-900" : "border-border bg-muted text-foreground"}`}>
+                    <p className="font-medium mb-1 break-words">{checkin && checkout ? `${checkin} to ${checkout} (${selectedNights} nights)` : t.booking.selectDates}</p>
+                    <p>{selectedRangeInvalid ? t.booking.invalidRange : t.booking.requestReady}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <Button size="lg" className="w-full py-5 sm:py-6 text-sm sm:text-base" disabled={sendDisabled} onClick={() => window.open(buildWhatsAppUrl(), "_blank", "noopener,noreferrer")}>
+                      {t.booking.sendRequest}
+                    </Button>
+                    <Button size="lg" variant="outline" className="w-full py-4 sm:py-5 text-sm sm:text-base border-secondary/40 text-secondary hover:bg-secondary/5" asChild>
+                      <a href={AIRBNB_URL} target="_blank" rel="noopener noreferrer" data-testid="button-book-airbnb">
+                        {t.booking.airbnbBtn}
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* â”€â”€ About â”€â”€ */}
+      <section id="about" ref={aboutSectionRef} className="relative min-h-[100svh] py-16 sm:py-24 overflow-hidden">
         <video
           ref={aboutVideoRef}
           src={WATERFALL_VIDEO_PATH}
@@ -554,16 +936,16 @@ export default function LandingPage() {
           {aboutSoundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
         </button>
         <div className="relative z-10 container mx-auto px-4 max-w-6xl">
-          <Reveal className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-serif text-white mb-4">{t.about.title}</h2>
-            <div className="w-16 h-1 bg-secondary mx-auto mb-6" />
+          <Reveal className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-white mb-4">{t.about.title}</h2>
+            <div className="w-16 h-1 bg-secondary mx-auto mb-5 sm:mb-6" />
             <p className="text-white/85 max-w-3xl mx-auto leading-relaxed text-base">{t.about.subtitle}</p>
           </Reveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
             {t.about.rooms.map((room, i) => (
               <Reveal key={room.name} delay={i * 0.08}>
                 <Card className="h-full bg-white/78 backdrop-blur-md border-white/45 shadow-lg transition-shadow duration-300 hover:shadow-xl sm:bg-white/92 sm:backdrop-blur-sm">
-                  <CardContent className="p-6">
+                  <CardContent className="p-5 sm:p-6">
                     <h3 className="font-serif text-xl text-foreground mb-4 pb-3 border-b border-border">{room.name}</h3>
                     {'items' in room ? (
                       <ul className="space-y-2">
@@ -584,49 +966,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Gallery ── */}
-      <section id="gallery" className="py-20 bg-card">
+      {/* â”€â”€ Floors â”€â”€ */}
+      <section id="floors" className="py-16 sm:py-24">
         <div className="container mx-auto px-4 max-w-6xl">
-          <Reveal className="text-center mb-10">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.gallery.title}</h2>
-            <div className="w-16 h-1 bg-secondary mx-auto mb-8" />
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {t.gallery.tabs.map((tab, i) => (
-                <button key={i} onClick={() => setGalleryTab(i)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${galleryTab === i ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
-                  data-testid={`gallery-tab-${i}`}>{tab}</button>
-              ))}
-            </div>
-          </Reveal>
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
-            {currentGallery.map((src, i) => (
-              <GalleryImg key={`${galleryTab}-${i}`} src={src} index={i}
-                onClick={() => setLightbox({ images: currentGallery, idx: i })} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Floors ── */}
-      <section id="floors" className="py-24">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <Reveal className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.floors.title}</h2>
-            <div className="w-16 h-1 bg-secondary mx-auto mb-6" />
+          <Reveal className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.floors.title}</h2>
+            <div className="w-16 h-1 bg-secondary mx-auto mb-5 sm:mb-6" />
             <p className="text-muted-foreground max-w-2xl mx-auto">{t.floors.subtitle}</p>
           </Reveal>
-          <div className="space-y-20">
+          <div className="space-y-16 sm:space-y-20">
             {/* Floor 1 */}
-            <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="grid gap-8 md:grid-cols-2 md:gap-12 items-center">
               <Reveal className="order-2 md:order-1 space-y-5" delay={0.1}>
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                  <h3 className="text-3xl font-serif">{t.floors.floor1.title}</h3>
+                  <h3 className="text-2xl sm:text-3xl font-serif">{t.floors.floor1.title}</h3>
                   <span className="flex items-center gap-2 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-sm font-medium">
                     <Users className="w-4 h-4" />{t.floors.floor1.guests}
                   </span>
                 </div>
                 <p className="text-muted-foreground">{t.floors.floor1.description}</p>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {t.floors.floor1.amenities.map(a => (
                     <div key={a} className="flex items-center gap-2 text-sm">
                       <FloorAmenityIcon text={a} />{a}
@@ -642,19 +1001,19 @@ export default function LandingPage() {
               </Reveal>
             </div>
             {/* Floor 2 */}
-            <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="grid gap-8 md:grid-cols-2 md:gap-12 items-center">
               <Reveal>
                 <FloorCarousel images={floor2Imgs} testId="carousel-floor-2" />
               </Reveal>
               <Reveal className="space-y-5" delay={0.1}>
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                  <h3 className="text-3xl font-serif">{t.floors.floor2.title}</h3>
+                  <h3 className="text-2xl sm:text-3xl font-serif">{t.floors.floor2.title}</h3>
                   <span className="flex items-center gap-2 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-sm font-medium">
                     <Users className="w-4 h-4" />{t.floors.floor2.guests}
                   </span>
                 </div>
                 <p className="text-muted-foreground">{t.floors.floor2.description}</p>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {t.floors.floor2.amenities.map(a => (
                     <div key={a} className="flex items-center gap-2 text-sm">
                       <FloorAmenityIcon text={a} />{a}
@@ -670,14 +1029,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Amenities ── */}
-      <section id="amenities" className="py-24 bg-card">
+      {/* â”€â”€ Amenities â”€â”€ */}
+      <section id="amenities" className="py-16 sm:py-24 bg-card">
         <div className="container mx-auto px-4 max-w-5xl">
           <Reveal className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.amenities.title}</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.amenities.title}</h2>
             <div className="w-16 h-1 bg-secondary mx-auto" />
           </Reveal>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 sm:gap-6">
             {t.amenities.list.map((item, i) => (
               <Reveal key={item} delay={i * 0.04} className="text-center">
                 <div className="flex flex-col items-center gap-3">
@@ -692,11 +1051,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Why Us ── */}
-      <section id="whyus" className="py-24">
+      {/* â”€â”€ Why Us â”€â”€ */}
+      <section id="whyus" className="py-16 sm:py-24">
         <div className="container mx-auto px-4 max-w-5xl">
           <Reveal className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.whyUs.title}</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.whyUs.title}</h2>
             <div className="w-16 h-1 bg-secondary mx-auto" />
           </Reveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -715,75 +1074,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Booking / Contact ── */}
-      <section id="booking" className="py-24 bg-card">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <Reveal className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.booking.title}</h2>
-            <div className="w-16 h-1 bg-secondary mx-auto" />
-          </Reveal>
-          <Reveal delay={0.1}>
-            <Card className="shadow-xl border-border/60">
-              <CardContent className="p-8 md:p-10">
-                <div className="grid md:grid-cols-2 gap-5 mb-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">{t.booking.checkin}</label>
-                    <input type="date" value={checkin} onChange={e => setCheckin(e.target.value)}
-                      data-testid="input-checkin"
-                      className="w-full border border-border rounded-xl px-4 py-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">{t.booking.checkout}</label>
-                    <input type="date" value={checkout} onChange={e => setCheckout(e.target.value)}
-                      data-testid="input-checkout"
-                      className="w-full border border-border rounded-xl px-4 py-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">{t.booking.guests}</label>
-                    <input type="number" min="1" max="14" value={guests} onChange={e => setGuests(e.target.value)}
-                      data-testid="input-guests"
-                      className="w-full border border-border rounded-xl px-4 py-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">{t.booking.note}</label>
-                    <input type="text" value={bookingNote} onChange={e => setBookingNote(e.target.value)}
-                      placeholder={t.booking.notePlaceholder}
-                      data-testid="input-note"
-                      className="w-full border border-border rounded-xl px-4 py-3 bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm" />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Button size="lg" className="w-full py-6 text-base" asChild>
-                    <a href={buildWhatsAppUrl()} target="_blank" rel="noopener noreferrer" data-testid="button-book-whatsapp">
-                      {t.booking.whatsappBtn}
-                    </a>
-                  </Button>
-                  <Button size="lg" variant="outline" className="w-full py-5 text-base border-secondary/40 text-secondary hover:bg-secondary/5" asChild>
-                    <a href={AIRBNB_URL} target="_blank" rel="noopener noreferrer" data-testid="button-book-airbnb">
-                      {t.booking.airbnbBtn}
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </Reveal>
-        </div>
-      </section>
 
-      {/* ── Location ── */}
-      <section id="location" className="py-24">
+      <section id="location" className="py-16 sm:py-24">
         <div className="container mx-auto px-4 max-w-6xl">
           <Reveal className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">{t.location.title}</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.location.title}</h2>
             <div className="w-16 h-1 bg-secondary mx-auto mb-6" />
             <a href={MAPS_URL} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-secondary transition-colors text-sm">
               <MapPin className="w-4 h-4" />{t.location.address}
             </a>
           </Reveal>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid gap-8 md:grid-cols-2">
             <Reveal>
-              <div className="h-[400px] rounded-2xl overflow-hidden border border-border shadow-md">
+              <div className="h-[280px] sm:h-[360px] md:h-[400px] rounded-2xl overflow-hidden border border-border shadow-md">
                 <iframe
                   src={MAPS_EMBED}
                   className="w-full h-full border-0"
@@ -827,10 +1131,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="bg-zinc-950 py-14 text-zinc-400">
+      {/* â”€â”€ Footer â”€â”€ */}
+      <footer className="bg-zinc-950 py-12 sm:py-14 text-zinc-400">
         <div className="container mx-auto px-4 max-w-5xl">
-          <div className="grid sm:grid-cols-3 gap-8 mb-10">
+          <div className="grid gap-8 sm:grid-cols-3 mb-10">
             <div>
               <button onClick={handleFooterClick} data-testid="footer-sitename"
                 className="font-serif text-2xl text-white mb-3 block bg-transparent border-none cursor-pointer hover:text-secondary transition-colors select-none">
@@ -861,25 +1165,31 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-zinc-800 pt-6 text-center text-sm text-zinc-600">
-            © {new Date().getFullYear()} {t.siteName}. {t.footer.rights}
+            Â© {new Date().getFullYear()} {t.siteName}. {t.footer.rights}
           </div>
         </div>
       </footer>
 
-      {/* ── Mobile sticky WhatsApp ── */}
+      {/* â”€â”€ Mobile sticky WhatsApp â”€â”€ */}
       <a href={buildWhatsAppUrl()} target="_blank" rel="noopener noreferrer"
         className="md:hidden fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-[#25D366] text-white shadow-xl flex items-center justify-center hover:bg-[#20bd5c] transition-colors"
         data-testid="mobile-whatsapp">
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       </a>
 
-      {/* ── Lightbox ── */}
-      {lightbox && <Lightbox images={lightbox.images} startIdx={lightbox.idx} onClose={() => setLightbox(null)} />}
 
-      {/* ── Admin Panel ── */}
+      {/* â”€â”€ Admin Panel â”€â”€ */}
       {adminOpen && (
-        <AdminPanel media={media} onUpdate={update} onReset={reset}
-          onClose={() => setAdminOpen(false)} adminT={t.admin as AdminTranslation} />
+        <AdminPanel
+          media={media}
+          calendarConfig={calendarConfig}
+          onUpdate={update}
+          onReset={reset}
+          onUpdateCalendar={cfg => { setCalendarConfig(cfg); saveCalendarConfig(cfg); }}
+          onResetCalendar={() => { const next = { ...defaultCalendarConfig }; setCalendarConfig(next); resetCalendarConfig(); }}
+          onClose={() => setAdminOpen(false)}
+          adminT={t.admin as AdminTranslation}
+        />
       )}
     </div>
   );

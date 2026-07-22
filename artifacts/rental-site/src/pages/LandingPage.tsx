@@ -143,6 +143,21 @@ function mergeDateSets(...sets: Set<string>[]): Set<string> {
   return merged;
 }
 
+function mergeUniqueStrings(...groups: string[][]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const group of groups) {
+    for (const value of group) {
+      if (seen.has(value)) continue;
+      seen.add(value);
+      merged.push(value);
+    }
+  }
+
+  return merged;
+}
+
 function rangeContainsBlockedDates(startKey: string, endKey: string, blockedDates: Set<string>): boolean {
   const start = parseDateKey(startKey);
   const end = parseDateKey(endKey);
@@ -553,7 +568,7 @@ export default function LandingPage() {
           ? wholeHouseResult.blockedDates
           : mergeDateSets(floor1Result.blockedDates, floor2Result.blockedDates),
       });
-      setCalendarErrors([...floor1Result.errors, ...floor2Result.errors, ...wholeHouseResult.errors]);
+      setCalendarErrors(mergeUniqueStrings(floor1Result.errors, floor2Result.errors, wholeHouseResult.errors));
       setCalendarRefreshedAt(new Date().toISOString());
       setCalendarLoading(false);
     };
@@ -835,9 +850,15 @@ export default function LandingPage() {
                   {calendarErrors.length > 0 && (
                     <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs sm:text-sm text-amber-900 space-y-1">
                       <p className="font-medium">{t.booking.feedErrorTitle}</p>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {calendarErrors.slice(0, 3).map(err => <li key={err}>{err}</li>)}
-                      </ul>
+                      <p className="text-[11px] sm:text-xs">{t.booking.feedErrorHint}</p>
+                      <details className="group">
+                        <summary className="cursor-pointer list-none text-[11px] sm:text-xs font-medium text-amber-800/90">
+                          {t.booking.feedErrorDetails}
+                        </summary>
+                        <ul className="mt-2 list-disc pl-5 space-y-1 text-[11px] sm:text-xs">
+                          {calendarErrors.slice(0, 3).map(err => <li key={err}>{err}</li>)}
+                        </ul>
+                      </details>
                     </div>
                   )}
                 </CardContent>

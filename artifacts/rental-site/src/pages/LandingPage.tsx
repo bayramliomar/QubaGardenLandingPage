@@ -731,16 +731,16 @@ export default function LandingPage() {
 
       {/* â”€â”€ Booking / Contact â”€â”€ */}
       <section id="booking" className="scroll-mt-20 py-16 sm:py-24 bg-card">
-        <div className="container mx-auto px-4 max-w-6xl">
+        <div className="container mx-auto max-w-6xl px-3 min-[420px]:px-4">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.booking.title}</h2>
             <div className="w-16 h-1 bg-secondary mx-auto mb-4" />
             <p className="text-muted-foreground max-w-2xl mx-auto">{t.booking.subtitle}</p>
           </Reveal>
-          <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] lg:items-start">
+          <div className="grid min-w-0 gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] lg:items-start">
             <Reveal delay={0.05} className="min-w-0">
-              <Card className="h-full min-w-0 overflow-hidden shadow-xl border-border/60">
-                <CardContent className="min-w-0 p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+              <Card className="h-full min-w-0 overflow-hidden shadow-lg sm:shadow-xl border-border/60">
+                <CardContent className="min-w-0 p-2.5 min-[390px]:p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
                       <button
@@ -772,14 +772,14 @@ export default function LandingPage() {
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-center sm:text-left">
-                      <h3 className="font-serif text-2xl sm:text-3xl text-foreground capitalize">{monthLabel}</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
+                      <h3 className="font-serif text-xl min-[390px]:text-2xl sm:text-3xl text-foreground capitalize">{monthLabel}</h3>
+                      <p className="text-[11px] min-[390px]:text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={() => setVisibleMonth(month => shiftMonth(month, -1))}
-                        className="w-10 h-10 rounded-full border border-border text-foreground hover:bg-accent transition-colors"
+                        className="w-9 h-9 min-[390px]:w-10 min-[390px]:h-10 rounded-full border border-border text-foreground hover:bg-accent transition-colors"
                         aria-label={t.booking.previousMonth}
                       >
                         <ChevronLeft className="w-4 h-4 mx-auto" />
@@ -787,7 +787,7 @@ export default function LandingPage() {
                       <button
                         type="button"
                         onClick={() => setVisibleMonth(month => shiftMonth(month, 1))}
-                        className="w-10 h-10 rounded-full border border-border text-foreground hover:bg-accent transition-colors"
+                        className="w-9 h-9 min-[390px]:w-10 min-[390px]:h-10 rounded-full border border-border text-foreground hover:bg-accent transition-colors"
                         aria-label={t.booking.nextMonth}
                       >
                         <ChevronRight className="w-4 h-4 mx-auto" />
@@ -797,14 +797,14 @@ export default function LandingPage() {
 
                   <div className="w-full min-w-0 overflow-hidden pb-1">
                     <div className="w-full min-w-0">
-                      <div className="grid min-w-0 grid-cols-7 gap-1 sm:gap-2 text-center text-[9px] sm:text-[11px] uppercase tracking-normal sm:tracking-[0.18em] text-muted-foreground">
+                      <div className="grid min-w-0 grid-cols-7 gap-0.5 min-[390px]:gap-1 sm:gap-2 text-center text-[8px] min-[390px]:text-[9px] sm:text-[11px] uppercase tracking-normal sm:tracking-[0.18em] text-muted-foreground">
                         {weekdayLabels.map(day => <div key={day}>{day}</div>)}
                       </div>
 
-                      <div className="grid min-w-0 grid-cols-7 gap-1 sm:gap-2 mt-1 sm:mt-2">
+                      <div className="grid min-w-0 grid-cols-7 gap-0.5 min-[390px]:gap-1 sm:gap-2 mt-1 sm:mt-2">
                         {monthCells.map((cell, index) => {
                           if (!cell) {
-                            return <div key={`empty-${index}`} className="aspect-square rounded-xl bg-transparent" />;
+                            return <div key={`empty-${index}`} className="aspect-square rounded-md sm:rounded-xl bg-transparent" />;
                           }
 
                           const key = formatDateKey(cell);
@@ -820,7 +820,7 @@ export default function LandingPage() {
                               key={key}
                               type="button"
                               onClick={() => handleCalendarDayClick(cell)}
-                              className={`relative aspect-square min-w-0 rounded-md sm:rounded-xl border text-[10px] sm:text-sm font-medium transition-all ${isBlocked
+                              className={`relative aspect-square min-w-0 rounded-[0.55rem] min-[390px]:rounded-md sm:rounded-xl border text-[9px] min-[390px]:text-[10px] sm:text-sm font-medium transition-all ${isBlocked
                                 ? isPast
                                   ? "bg-zinc-100 text-zinc-400 border-zinc-200 line-through cursor-not-allowed"
                                   : "bg-red-100 text-red-500 border-red-200 line-through cursor-not-allowed"
@@ -833,7 +833,7 @@ export default function LandingPage() {
                               disabled={isBlocked}
                               aria-label={key}
                             >
-                              <span className="absolute top-1 left-1 sm:top-2 sm:left-2 text-[9px] sm:text-xs leading-none">{cell.getDate()}</span>
+                              <span className="absolute top-1 left-1 sm:top-2 sm:left-2 text-[8px] min-[390px]:text-[9px] sm:text-xs leading-none">{cell.getDate()}</span>
                             </button>
                           );
                         })}

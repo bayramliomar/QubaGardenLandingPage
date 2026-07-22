@@ -773,7 +773,7 @@ export default function LandingPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-center sm:text-left">
                       <h3 className="font-serif text-xl min-[390px]:text-2xl sm:text-3xl text-foreground capitalize">{monthLabel}</h3>
-                      <p className="text-[11px] min-[390px]:text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
+                      <p className="mx-auto max-w-[292px] min-[375px]:max-w-[320px] min-[430px]:max-w-[360px] lg:max-w-none text-[11px] min-[390px]:text-xs sm:text-sm text-muted-foreground leading-relaxed">{t.booking.monthHint}</p>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <button
@@ -796,15 +796,15 @@ export default function LandingPage() {
                   </div>
 
                   <div className="w-full min-w-0 pb-1">
-                    <div className="mx-auto w-full max-w-[292px] min-[375px]:max-w-[320px] sm:max-w-none">
-                      <div className="grid grid-cols-7 gap-1 text-center text-[8px] min-[390px]:text-[9px] sm:text-[11px] uppercase tracking-normal sm:tracking-[0.18em] text-muted-foreground">
+                    <div className="mx-auto w-full max-w-[292px] min-[375px]:max-w-[320px] min-[430px]:max-w-[360px] md:max-w-[420px] lg:max-w-none">
+                      <div className="grid grid-cols-7 gap-1 lg:gap-2 text-center text-[8px] min-[390px]:text-[9px] lg:text-[11px] uppercase tracking-normal lg:tracking-[0.18em] text-muted-foreground">
                         {weekdayLabels.map(day => <div key={day}>{day}</div>)}
                       </div>
 
-                      <div className="grid grid-cols-7 gap-1 sm:gap-2 mt-1 sm:mt-2">
+                      <div className="grid grid-cols-7 gap-1 lg:gap-2 mt-1 lg:mt-2">
                         {monthCells.map((cell, index) => {
                           if (!cell) {
-                            return <div key={`empty-${index}`} className="h-[38px] min-[375px]:h-[42px] min-[430px]:h-[46px] sm:aspect-square sm:h-auto rounded-md sm:rounded-xl bg-transparent" />;
+                            return <div key={`empty-${index}`} className="h-[38px] min-[375px]:h-[42px] min-[430px]:h-[46px] md:h-[52px] lg:aspect-square lg:h-auto rounded-md lg:rounded-xl bg-transparent" />;
                           }
 
                           const key = formatDateKey(cell);
@@ -820,7 +820,7 @@ export default function LandingPage() {
                               key={key}
                               type="button"
                               onClick={() => handleCalendarDayClick(cell)}
-                              className={`relative h-[38px] min-[375px]:h-[42px] min-[430px]:h-[46px] min-w-0 sm:aspect-square sm:h-auto rounded-[0.55rem] min-[390px]:rounded-md sm:rounded-xl border text-[9px] min-[390px]:text-[10px] sm:text-sm font-medium transition-all ${isBlocked
+                              className={`relative h-[38px] min-[375px]:h-[42px] min-[430px]:h-[46px] md:h-[52px] min-w-0 lg:aspect-square lg:h-auto rounded-[0.55rem] min-[390px]:rounded-md lg:rounded-xl border text-[9px] min-[390px]:text-[10px] lg:text-sm font-medium transition-all ${isBlocked
                                 ? isPast
                                   ? "bg-zinc-100 text-zinc-400 border-zinc-200 line-through cursor-not-allowed"
                                   : "bg-red-100 text-red-500 border-red-200 line-through cursor-not-allowed"
@@ -833,7 +833,7 @@ export default function LandingPage() {
                               disabled={isBlocked}
                               aria-label={key}
                             >
-                              <span className="absolute top-1 left-1 sm:top-2 sm:left-2 text-[8px] min-[390px]:text-[9px] sm:text-xs leading-none">{cell.getDate()}</span>
+                              <span className="absolute top-1 left-1 lg:top-2 lg:left-2 text-[8px] min-[390px]:text-[9px] lg:text-xs leading-none">{cell.getDate()}</span>
                             </button>
                           );
                         })}
@@ -841,10 +841,10 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="mx-auto flex w-full max-w-[292px] min-[375px]:max-w-[320px] sm:max-w-none flex-wrap items-center gap-1.5 min-[390px]:gap-2 sm:gap-3 text-[9px] min-[390px]:text-[10px] sm:text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5 sm:gap-2"><span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-green-200 bg-green-50" /> {t.booking.available}</span>
-                    <span className="inline-flex items-center gap-1.5 sm:gap-2"><span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-green-700 bg-green-600" /> {t.booking.selected}</span>
-                    <span className="inline-flex items-center gap-1.5 sm:gap-2"><span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border border-red-200 bg-red-100" /> {t.booking.blocked}</span>
+                  <div className="mx-auto flex w-full max-w-[292px] min-[375px]:max-w-[320px] min-[430px]:max-w-[360px] md:max-w-[420px] lg:max-w-none flex-wrap items-center gap-1.5 min-[390px]:gap-2 lg:gap-3 text-[9px] min-[390px]:text-[10px] lg:text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 lg:gap-2"><span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full border border-green-200 bg-green-50" /> {t.booking.available}</span>
+                    <span className="inline-flex items-center gap-1.5 lg:gap-2"><span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full border border-green-700 bg-green-600" /> {t.booking.selected}</span>
+                    <span className="inline-flex items-center gap-1.5 lg:gap-2"><span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full border border-red-200 bg-red-100" /> {t.booking.blocked}</span>
                   </div>
 
                   {calendarErrors.length > 0 && (

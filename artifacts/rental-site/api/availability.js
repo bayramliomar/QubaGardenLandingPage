@@ -15,6 +15,7 @@ async function fetchAvailabilityFeed(feedUrl) {
     : "https://www.airbnb.com/";
 
   const primary = await fetch(feedUrl.toString(), {
+    cache: "no-store",
     headers: {
       ...browserHeaders,
       Referer: referer,
@@ -27,6 +28,7 @@ async function fetchAvailabilityFeed(feedUrl) {
   }
 
   return fetch(feedUrl.toString(), {
+    cache: "no-store",
     headers: {
       ...browserHeaders,
       Referer: referer,
@@ -62,7 +64,7 @@ export default async function handler(req, res) {
 
     const text = await response.text();
     res.setHeader("Content-Type", "text/calendar; charset=utf-8");
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+    res.setHeader("Cache-Control", "no-store, max-age=0");
     res.status(200).send(text);
   } catch (error) {
     res

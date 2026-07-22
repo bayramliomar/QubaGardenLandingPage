@@ -9,7 +9,7 @@ const browserHeaders = {
 
 const allowedHosts = new Set(["www.airbnb.com", "airbnb.com", "ical.booking.com"]);
 
-async function fetchAvailabilityFeed(feedUrl: URL) {
+async function fetchAvailabilityFeed(feedUrl) {
   const referer = feedUrl.hostname.includes("booking.com")
     ? "https://www.booking.com/"
     : "https://www.airbnb.com/";
@@ -34,7 +34,7 @@ async function fetchAvailabilityFeed(feedUrl: URL) {
   });
 }
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     res.status(405).send("Method not allowed");

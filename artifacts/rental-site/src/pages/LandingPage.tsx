@@ -715,7 +715,7 @@ export default function LandingPage() {
       </section>
 
       {/* â”€â”€ Booking / Contact â”€â”€ */}
-      <section id="booking" className="py-24 bg-card">
+      <section id="booking" className="scroll-mt-20 py-20 sm:py-24 bg-card">
         <div className="container mx-auto px-4 max-w-6xl">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.booking.title}</h2>
@@ -781,7 +781,7 @@ export default function LandingPage() {
                   </div>
 
                   <div className="overflow-x-auto -mx-1 px-1 pb-1">
-                    <div className="min-w-[340px] sm:min-w-0">
+                    <div className="min-w-[300px] sm:min-w-0">
                       <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] sm:text-[11px] uppercase tracking-[0.12em] sm:tracking-[0.18em] text-muted-foreground">
                         {weekdayLabels.map(day => <div key={day}>{day}</div>)}
                       </div>
@@ -912,7 +912,7 @@ export default function LandingPage() {
       </section>
 
       {/* â”€â”€ About â”€â”€ */}
-      <section id="about" ref={aboutSectionRef} className="relative min-h-[100svh] py-16 sm:py-24 overflow-hidden">
+      <section id="about" ref={aboutSectionRef} className="scroll-mt-20 relative min-h-[100svh] py-16 sm:py-24 overflow-hidden">
         <video
           ref={aboutVideoRef}
           src={WATERFALL_VIDEO_PATH}
@@ -967,7 +967,7 @@ export default function LandingPage() {
       </section>
 
       {/* â”€â”€ Floors â”€â”€ */}
-      <section id="floors" className="py-16 sm:py-24">
+      <section id="floors" className="scroll-mt-20 py-16 sm:py-24">
         <div className="container mx-auto px-4 max-w-6xl">
           <Reveal className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.floors.title}</h2>
@@ -1030,7 +1030,7 @@ export default function LandingPage() {
       </section>
 
       {/* â”€â”€ Amenities â”€â”€ */}
-      <section id="amenities" className="py-16 sm:py-24 bg-card">
+      <section id="amenities" className="scroll-mt-20 py-16 sm:py-24 bg-card">
         <div className="container mx-auto px-4 max-w-5xl">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.amenities.title}</h2>
@@ -1052,7 +1052,7 @@ export default function LandingPage() {
       </section>
 
       {/* â”€â”€ Why Us â”€â”€ */}
-      <section id="whyus" className="py-16 sm:py-24">
+      <section id="whyus" className="scroll-mt-20 py-16 sm:py-24">
         <div className="container mx-auto px-4 max-w-5xl">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.whyUs.title}</h2>
@@ -1075,7 +1075,7 @@ export default function LandingPage() {
       </section>
 
 
-      <section id="location" className="py-16 sm:py-24">
+      <section id="location" className="scroll-mt-20 py-16 sm:py-24">
         <div className="container mx-auto px-4 max-w-6xl">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground mb-4">{t.location.title}</h2>

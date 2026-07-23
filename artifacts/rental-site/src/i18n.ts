@@ -80,7 +80,7 @@ export const translations = {
       title: 'Rezervasiya',
       subtitle: 'Mövcud günlər Airbnb və Booking təqvimlərindən sinxronlaşır. Mərtəbə seçin, canlı təqvimi yoxlayın və uyğun tarixlər üçün WhatsApp sorğusu göndərin.',
       months: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'],
-      weekdays: ['B.E.', 'Ç.A.', 'Ç.', 'C.A.', 'C.', 'Ş.', 'B.'],
+      weekdays: ['B.', 'B.E.', 'Ç.A.', 'Ç.', 'C.A.', 'C.', 'Ş.'],
       floor1: '1-ci Mərtəbə',
       floor2: '2-ci Mərtəbə',
       wholeHouse: 'Bütün ev',
